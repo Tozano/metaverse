@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Retour vers le Futur — Scène A-Frame</title>
+
+    <!-- Librairies A-Frame & Composants -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
+</head>
+
+<body>
+    <a-scene>
+
+        <!-- Assets -->
+        <a-assets>
+            <img id="sol-texture" src="assets/textures/sol.jpg" />
+            <img id="concrete-texture" src="assets/textures/concrete.jpg" />
+            <img id="iron-texture" src="assets/textures/iron.jpg" />
+            <img id="affiche" src="assets/textures/back_to_the_future_affiche.jpg" />
+            <img id="panneau" src="assets/textures/back_to_the_future_logo.jpg" />
+            <video id="film" src="assets/videos/future.mp4" crossorigin="anonymous"></video>
+            <audio id="hover-sound" src="assets/sounds/hover.mp3"></audio>
+
+            <!-- Modèles 3D -->
+            <a-asset-item id="delorean" src="assets/3d_models/delorean/BACK_TT_CCAR.gltf"></a-asset-item>
+            <a-asset-item id="hoverboard" src="assets/3d_models/hoverboard/scene.gltf"></a-asset-item>
+            <a-asset-item id="locomotive" src="assets/3d_models/locomotive/scene.gltf"></a-asset-item>
+            <a-asset-item id="tv" src="assets/3d_models/retro_tv/scene.gltf"></a-asset-item>
+            <a-asset-item id="arcade_machine" src="assets/3d_models/arcade_machine/scene.gltf"></a-asset-item>
+        </a-assets>
+
+        <!-- Sol -->
+        <a-plane src="#sol-texture" rotation="-90 0 0" width="50" height="50" repeat="10 10"></a-plane>
+
+        <!-- Ciel / image 360° -->
+        <a-sky src="assets/textures/360.jpg"></a-sky>
+
+        <!-- Primitives avec transformations -->
+        <a-box id="switch-box-1" position="-15 1 -20" rotation="0 45 0" scale="5 10 3" src="#concrete-texture" class="clickable" toggle-texture>
+        </a-box>
+        <a-box id="switch-box-2" position="15 5 -15" rotation="0 45 0" scale="10 10 10" src="#concrete-texture" class="clickable"
+            toggle-texture>
+        </a-box>
+        <a-box id="switch-box-3" position="-15 3 0" rotation="0 0 0" scale="3 5 7" src="#concrete-texture"
+            class="clickable" toggle-texture>
+        </a-box>
+
+        <!-- Images affichées -->
+        <a-image src="#affiche" position="11.5 5 -11" rotation="0 -45 0" width="6" height="4"></a-image>
+        <a-image src="#panneau" position="-13 3 -18" rotation="0 45 0" width="3" height="2"></a-image>
+
+        <!-- Modèles 3D statiques -->
+        <a-entity gltf-model="#delorean" position="0 0.5 -10" rotation="0 90 0" scale="1 1 1"
+        gesture-handler></a-entity>
+        <a-entity id="hoverboard" gltf-model="#hoverboard" position="10 1 -8" rotation="0 -45 0" scale="0.1 0.1 0.1"
+            sound="src: #hover-sound; autoplay: false; loop: false" class="clickable" toggle-hover-sound>
+        </a-entity>
+        <a-entity id="locomotive" gltf-model="#locomotive" position="26 1 -8" rotation="0 -90 0" scale="4 4 4">
+        </a-entity>
+        <a-entity gltf-model="#tv" position="10.5 0 -10" rotation="0 -45 0" scale="5 5 5"></a-entity>
+        <a-entity gltf-model="#arcade_machine" position="0 2 -5" scale="2 2 2"></a-entity>
+
+        <!-- Vidéo intégrée -->
+        <a-video src="#film" position="-12.5 3 0" rotation="0 90 0" width="4" height="2.5" class="clickable"
+        play-video-on-click></a-video>
+
+        <a-entity raycaster="objects: .clickable" cursor="rayOrigin: mouse"></a-entity>
+
+        <!-- Caméra avec contrôles -->
+        <a-entity id="cameraRig" position="0 1.6 0" gesture-detector>
+            <a-camera wasd-controls look-controls></a-camera>
+        </a-entity>          
+
+    </a-scene>
+</body>
+
+</html>
+
+<script>
+    AFRAME.registerComponent('toggle-hover-sound', {
+        init: function () {
+            this.el.addEventListener('click', () => {
+                const sound = this.el.components.sound;
+                if (!sound.isPlaying) {
+                    sound.playSound();
+                } else {
+                    sound.stopSound();
+                }
+            });
+        }
+    });
+
+    AFRAME.registerComponent('toggle-texture', {
+        init: function () {
+            this.texture1 = '#concrete-texture';
+            this.texture2 = '#iron-texture';
+            this.current = 1;
+
+            this.el.addEventListener('click', () => {
+                this.current = this.current === 1 ? 2 : 1;
+                const newTexture = this.current === 1 ? this.texture1 : this.texture2;
+                this.el.setAttribute('material', 'src', newTexture);
+            });
+        }
+    });
+
+    AFRAME.registerComponent('play-video-on-click', {
+        init: function () {
+            this.el.addEventListener('click', () => {
+                const video = document.querySelector('#film');
+                if (video.paused) {
+                    video.play();
+                } else {
+                    video.pause();
+                }
+            });
+        }
+    });
+
+    AFRAME.registerComponent('gesture-handler', {
+        schema: {
+            enabled: { default: true }
+        },
+        init: function () {
+            this.scale = this.el.object3D.scale.clone();
+            this.rotation = this.el.object3D.rotation.clone();
+            this.handleRotation = this.handleRotation.bind(this);
+            this.handlePinch = this.handlePinch.bind(this);
+        },
+        play: function () {
+            this.el.sceneEl.addEventListener('onefingermove', this.handleRotation);
+            this.el.sceneEl.addEventListener('twofingermove', this.handlePinch);
+        },
+        pause: function () {
+            this.el.sceneEl.removeEventListener('onefingermove', this.handleRotation);
+            this.el.sceneEl.removeEventListener('twofingermove', this.handlePinch);
+        },
+        handleRotation: function (event) {
+            if (!this.data.enabled) return;
+            const dX = event.detail.positionChange.x;
+            this.el.object3D.rotation.y += dX / 100;
+        },
+        handlePinch: function (event) {
+            if (!this.data.enabled) return;
+            const scale_factor = 1 + event.detail.spreadChange / 200;
+            this.el.object3D.scale.multiplyScalar(scale_factor);
+        }
+    });
+</script>
